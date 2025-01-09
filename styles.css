@@ -1,0 +1,48 @@
+.conversion-text {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+#swapBtn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+#swapBtn:hover {
+    transform: rotate(180deg);
+}
+
+.history-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.history-item:hover {
+    background-color: #f8f9fa;
+}
+
+.alert {
+    transition: all 0.3s ease;
+}
+
+.input-group .btn-outline-secondary {
+    border-color: #ced4da;
+}
+
+.input-group .btn-outline-secondary:hover {
+    background-color: #e9ecef;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#result {
+    animation: fadeIn 0.3s ease;
+}

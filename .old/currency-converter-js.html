@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Converter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <!-- Container for Currency Converter App -->
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0 text-center">Currency Converter</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Form for Conversion Input -->
+                        <form id="converterForm">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Amount</label>
+                                <input type="number" class="form-control" id="amount" step="0.01" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="fromCurrency" class="form-label">From Currency</label>
+                                    <select class="form-select" id="fromCurrency" required></select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="toCurrency" class="form-label">To Currency</label>
+                                    <select class="form-select" id="toCurrency" required></select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Convert</button>
+                        </form>
+
+                        <!-- Result Display -->
+                        <div id="result" class="alert alert-success mt-3" style="display: none;">
+                            <h4 class="alert-heading">Conversion Result</h4>
+                            <p id="conversionText"></p>
+                            <hr>
+                            <p class="mb-0" id="rateText"></p>
+                            <small class="text-muted" id="timestamp"></small>
+                        </div>
+
+                        <!-- Error Display -->
+                        <div id="error" class="alert alert-danger mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Predefined Currency List
+        const currencies = {
+            'USD': 'US Dollar',
+            'EUR': 'Euro',
+            'GBP': 'British Pound',
+            'JPY': 'Japanese Yen',
+            'AUD': 'Australian Dollar',
+            'CAD': 'Canadian Dollar',
+            'CHF': 'Swiss Franc',
+            'CNY': 'Chinese Yuan',
+            'INR': 'Indian Rupee'
+        };
+
+        // API Configuration
+        const API_KEY = '5b526d0583004fa05f98a2a3'; // Replace with your API Key
+        const BASE_URL = 'https://v6.exchangerate-api.com/v6/';
+
+        /**
+         * Populate currency dropdowns with available options.
+         */
+        function populateCurrencyDropdowns() {
+            const fromSelect = document.getElementById('fromCurrency');
+            const toSelect = document.getElementById('toCurrency');
+            
+            Object.entries(currencies).forEach(([code, name]) => {
+                const option1 = new Option(`${code} - ${name}`, code);
+                const option2 = new Option(`${code} - ${name}`, code);
+                fromSelect.add(option1);
+                toSelect.add(option2);
+            });
+
+            // Default Selection
+            fromSelect.value = 'USD';
+            toSelect.value = 'EUR';
+        }
+
+        /**
+         * Fetch exchange rate and perform conversion.
+         * @param {number} amount - The amount to convert.
+         * @param {string} fromCurrency - The source currency code.
+         * @param {string} toCurrency - The target currency code.
+         */
+        async function convertCurrency(amount, fromCurrency, toCurrency) {
+            try {
+                const response = await fetch(`${BASE_URL}${API_KEY}/pair/${fromCurrency}/${toCurrency}`);
+                const data = await response.json();
+
+                if (data.result === 'success') {
+                    const rate = data.conversion_rate;
+                    const convertedAmount = (amount * rate).toFixed(2);
+
+                    // Display Success
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('error').style.display = 'none';
+                    document.getElementById('conversionText').textContent = 
+                        `${amount} ${fromCurrency} = ${convertedAmount} ${toCurrency}`;
+                    document.getElementById('rateText').textContent = 
+                        `Exchange rate: 1 ${fromCurrency} = ${rate} ${toCurrency}`;
+                    document.getElementById('timestamp').textContent = 
+                        `Last updated: ${new Date().toLocaleString()}`;
+                } else {
+                    throw new Error('Failed to fetch exchange rate.');
+                }
+            } catch (error) {
+                // Display Error
+                document.getElementById('result').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Error fetching exchange rate. Please try again.';
+            }
+        }
+
+        // Initialize Dropdowns on Page Load
+        document.addEventListener('DOMContentLoaded', populateCurrencyDropdowns);
+
+        // Handle Form Submission
+        document.getElementById('converterForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('amount').value);
+            const fromCurrency = document.getElementById('fromCurrency').value;
+            const toCurrency = document.getElementById('toCurrency').value;
+
+            if (amount > 0) {
+                convertCurrency(amount, fromCurrency, toCurrency);
+            } else {
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Please enter a valid amount.';
+            }
+        });
+    </script>
+</body>
+</html>
