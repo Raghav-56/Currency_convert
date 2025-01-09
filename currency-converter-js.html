@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Converter</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">Currency Converter</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="converterForm">
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Amount</label>
+                                <input type="number" class="form-control" id="amount" step="0.01" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="fromCurrency" class="form-label">From Currency</label>
+                                    <select class="form-select" id="fromCurrency" required>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="toCurrency" class="form-label">To Currency</label>
+                                    <select class="form-select" id="toCurrency" required>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">Convert</button>
+                        </form>
+                        
+                        <div id="result" class="alert alert-success mt-3" style="display: none;">
+                            <h4 class="alert-heading">Conversion Result</h4>
+                            <p id="conversionText"></p>
+                            <hr>
+                            <p class="mb-0" id="rateText"></p>
+                            <small class="text-muted" id="timestamp"></small>
+                        </div>
+
+                        <div id="error" class="alert alert-danger mt-3" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const currencies = {
+            'USD': 'US Dollar',
+            'EUR': 'Euro',
+            'GBP': 'British Pound',
+            'JPY': 'Japanese Yen',
+            'AUD': 'Australian Dollar',
+            'CAD': 'Canadian Dollar',
+            'CHF': 'Swiss Franc',
+            'CNY': 'Chinese Yuan',
+            'INR': 'Indian Rupee'
+        };
+
+        // API Key - Replace with your own from exchangerate-api.com
+        const API_KEY = '5b526d0583004fa05f98a2a3';
+        const BASE_URL = 'https://v6.exchangerate-api.com/v6/';
+
+        // Populate currency dropdowns
+        function populateCurrencyDropdowns() {
+            const fromSelect = document.getElementById('fromCurrency');
+            const toSelect = document.getElementById('toCurrency');
+            
+            for (const [code, name] of Object.entries(currencies)) {
+                const option1 = new Option(`${code} - ${name}`, code);
+                const option2 = new Option(`${code} - ${name}`, code);
+                
+                fromSelect.add(option1);
+                toSelect.add(option2);
+            }
+
+            // Set default values
+            fromSelect.value = 'USD';
+            toSelect.value = 'EUR';
+        }
+
+        // Convert currency
+        async function convertCurrency(amount, fromCurrency, toCurrency) {
+            try {
+                const response = await fetch(`${BASE_URL}${API_KEY}/pair/${fromCurrency}/${toCurrency}`);
+                const data = await response.json();
+                
+                if (data.result === 'success') {
+                    const rate = data.conversion_rate;
+                    const convertedAmount = (amount * rate).toFixed(2);
+                    
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('error').style.display = 'none';
+                    document.getElementById('conversionText').textContent = 
+                        `${amount} ${fromCurrency} = ${convertedAmount} ${toCurrency}`;
+                    document.getElementById('rateText').textContent = 
+                        `Exchange rate: 1 ${fromCurrency} = ${rate} ${toCurrency}`;
+                    document.getElementById('timestamp').textContent = 
+                        `Last updated: ${new Date().toLocaleString()}`;
+                } else {
+                    throw new Error('Failed to fetch exchange rate');
+                }
+            } catch (error) {
+                document.getElementById('result').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 
+                    'Error fetching exchange rate. Please try again.';
+            }
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', populateCurrencyDropdowns);
+
+        document.getElementById('converterForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const amount = document.getElementById('amount').value;
+            const fromCurrency = document.getElementById('fromCurrency').value;
+            const toCurrency = document.getElementById('toCurrency').value;
+            
+            convertCurrency(amount, fromCurrency, toCurrency);
+        });
+    </script>
+</body>
+</html>
