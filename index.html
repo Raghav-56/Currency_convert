@@ -6,61 +6,121 @@
     <title>Currency Converter</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="styles.css">
+    <!-- Add theme support -->
+    <meta name="theme-color" content="#007bff">
 </head>
 <body class="bg-light">
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card shadow">
+                <div class="card shadow" id="converter-card">
+                    <!-- Theme Toggle -->
+                    <div class="theme-toggle position-absolute top-0 end-0 mt-2 me-2">
+                        <button id="themeToggle" class="btn btn-sm btn-outline-secondary" aria-label="Toggle dark mode">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </div>
+
                     <div class="card-header bg-primary text-white">
                         <h3 class="mb-0 text-center">Currency Converter</h3>
                     </div>
+                    
                     <div class="card-body">
                         <form id="converterForm">
+                            <!-- Amount Input with Copy Button -->
                             <div class="mb-3">
                                 <label for="amount" class="form-label">Amount</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control" id="amount" step="0.01" required>
+                                    <input type="number" 
+                           class="form-control" 
+                           id="amount" 
+                           step="0.01" 
+                           required 
+                           aria-label="Amount to convert"
+                           min="0.01">
                                     <button type="button" class="btn btn-outline-secondary" id="clearAmount">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
+                                <div class="form-text" id="amountHelp"></div>
                             </div>
                             
                             <div class="row">
+                                <!-- From Currency -->
                                 <div class="col-md-5">
                                     <label for="fromCurrency" class="form-label">From</label>
-                                    <select class="form-select" id="fromCurrency" required></select>
+                                    <div class="input-group">
+                                        <select class="form-select" id="fromCurrency" required>
+                                            <option value="">Select currency</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary" id="fromFavorite">
+                                            <i class="far fa-star"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 
+                                <!-- Swap Button -->
                                 <div class="col-md-2 d-flex align-items-end justify-content-center mb-3">
-                                    <button type="button" class="btn btn-outline-primary" id="swapBtn">
+                                    <button type="button" 
+                                            class="btn btn-outline-primary" 
+                                            id="swapBtn"
+                                            aria-label="Swap currencies">
                                         <i class="fas fa-exchange-alt"></i>
                                     </button>
                                 </div>
                                 
+                                <!-- To Currency -->
                                 <div class="col-md-5">
                                     <label for="toCurrency" class="form-label">To</label>
-                                    <select class="form-select" id="toCurrency" required></select>
+                                    <div class="input-group">
+                                        <select class="form-select" id="toCurrency" required>
+                                            <option value="">Select currency</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary" id="toFavorite">
+                                            <i class="far fa-star"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <button type="submit" class="btn btn-primary w-100 mt-3">Convert</button>
+                            <button type="submit" class="btn btn-primary w-100 mt-3" id="convertBtn">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                Convert
+                            </button>
                         </form>
 
+                        <!-- Results Section -->
                         <div id="result" class="alert alert-success mt-3" style="display: none;">
-                            <h4 class="alert-heading">Conversion Result</h4>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h4 class="alert-heading">Conversion Result</h4>
+                                <button class="btn btn-sm btn-outline-success" id="copyResult">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
                             <p id="conversionText" class="conversion-text"></p>
                             <hr>
                             <p class="mb-0" id="rateText"></p>
                             <small class="text-muted" id="timestamp"></small>
                         </div>
 
+                        <!-- Error Messages -->
                         <div id="error" class="alert alert-danger mt-3" style="display: none;"></div>
                         
+                        <!-- Conversion History -->
                         <div class="mt-3">
-                            <h5>Recent Conversions</h5>
-                            <ul id="historyList" class="list-group"></ul>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5>Recent Conversions</h5>
+                                <button class="btn btn-sm btn-outline-secondary" id="clearHistory">
+                                    Clear History
+                                </button>
+                            </div>
+                            <ul id="historyList" class="list-group mt-2"></ul>
+                        </div>
+
+                        <!-- Favorites Section -->
+                        <div class="mt-3" id="favoritesSection">
+                            <h5>Favorite Currencies</h5>
+                            <div id="favoritesList" class="d-flex flex-wrap gap-2"></div>
                         </div>
                     </div>
                 </div>
@@ -68,9 +128,29 @@
         </div>
     </div>
 
+    <!-- Chart Modal -->
+    <div class="modal fade" id="rateChartModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Exchange Rate History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <canvas id="rateChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="js/config.js"></script>
     <script src="js/currencies.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/chart.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,6 +1,58 @@
-.conversion-text {
-    font-size: 1.2rem;
-    font-weight: 500;
+:root {
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --background-light: #f8f9fa;
+    --text-light: #212529;
+    --border-color: #dee2e6;
+    --transition-speed: 0.3s;
+}
+
+/* Dark mode variables */
+[data-theme="dark"] {
+    --primary-color: #0d6efd;
+    --primary-hover: #0b5ed7;
+    --background-light: #212529;
+    --text-light: #f8f9fa;
+    --border-color: #495057;
+}
+
+/* General Styles */
+body {
+    transition: background-color var(--transition-speed) ease;
+}
+
+body[data-theme="dark"] {
+    background-color: var(--background-light) !important;
+    color: var(--text-light);
+}
+
+/* Card Styles */
+.card {
+    transition: all var(--transition-speed) ease;
+}
+
+body[data-theme="dark"] .card {
+    background-color: #343a40;
+    border-color: var(--border-color);
+}
+
+/* Form Controls */
+.form-control, .form-select {
+    transition: all var(--transition-speed) ease;
+}
+
+body[data-theme="dark"] .form-control,
+body[data-theme="dark"] .form-select {
+    background-color: #495057;
+    border-color: var(--border-color);
+    color: var(--text-light);
+}
+
+/* Buttons */
+.btn {
+    transition: all var(--transition-speed) ease;
 }
 
 #swapBtn {
@@ -10,39 +62,111 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s ease;
+    transition: transform var(--transition-speed) ease;
 }
 
 #swapBtn:hover {
     transform: rotate(180deg);
 }
 
+/* History Items */
 .history-item {
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color var(--transition-speed) ease;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
 }
 
 .history-item:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(0, 123, 255, 0.1);
 }
 
-.alert {
-    transition: all 0.3s ease;
+body[data-theme="dark"] .history-item:hover {
+    background-color: rgba(13, 110, 253, 0.1);
 }
 
-.input-group .btn-outline-secondary {
-    border-color: #ced4da;
-}
-
-.input-group .btn-outline-secondary:hover {
-    background-color: #e9ecef;
-}
-
+/* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 #result {
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn var(--transition-speed) ease;
+}
+
+.history-item {
+    animation: slideIn var(--transition-speed) ease;
+}
+
+/* Loading Spinner */
+.spinner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+body[data-theme="dark"] .spinner-overlay {
+    background: rgba(33, 37, 41, 0.8);
+}
+
+/* Accessibility */
+.form-control:focus,
+.form-select:focus,
+.btn:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    outline: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .card {
+        margin: 1rem;
+    }
+    
+    .row > div {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Chart Styles */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+/* Tooltip Styles */
+.currency-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
 }

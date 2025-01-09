@@ -1,100 +1,132 @@
+import CONFIG from './config.js';
+import CurrencyManager from './currencies.js';
+import ExchangeRateAPI from './api.js';
+import ChartManager from './chart.js';
+
 class CurrencyConverter {
     constructor() {
         this.api = new ExchangeRateAPI();
+        this.initializeElements();
+        this.setupEventListeners();
+        this.loadThemePreference();
+        this.loadHistory();
+        this.previousRates = new Map();
+    }
+
+    initializeElements() {
+        // Form elements
         this.form = document.getElementById('converterForm');
         this.amount = document.getElementById('amount');
         this.fromCurrency = document.getElementById('fromCurrency');
         this.toCurrency = document.getElementById('toCurrency');
+        
+        // Buttons
+        this.swapBtn = document.getElementById('swapBtn');
+        this.clearBtn = document.getElementById('clearAmount');
+        this.copyBtn = document.getElementById('copyResult');
+        this.themeToggle = document.getElementById('themeToggle');
+        this.clearHistoryBtn = document.getElementById('clearHistory');
+        
+        // Display areas
         this.result = document.getElementById('result');
         this.error = document.getElementById('error');
         this.historyList = document.getElementById('historyList');
-        this.swapBtn = document.getElementById('swapBtn');
-        this.clearBtn = document.getElementById('clearAmount');
-
-        this.setupEventListeners();
-        this.populateCurrencyDropdowns();
-        this.loadHistory();
+        this.conversionText = document.getElementById('conversionText');
+        this.rateText = document.getElementById('rateText');
+        this.timestamp = document.getElementById('timestamp');
     }
 
     setupEventListeners() {
+        // Form events
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        this.amount.addEventListener('input', () => this.validateAmount());
+        
+        // Button events
         this.swapBtn.addEventListener('click', () => this.swapCurrencies());
         this.clearBtn.addEventListener('click', () => this.clearAmount());
-        this.amount.addEventListener('input', () => this.validateAmount());
-    }
+        this.copyBtn.addEventListener('click', () => this.copyToClipboard());
+        this.themeToggle.addEventListener('click', () => this.toggleTheme());
+        this.clearHistoryBtn.addEventListener('click', () => this.clearHistory());
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+        
+        // Currency selection events
+        this.fromCurrency.addEventListener('change', () => this.handleCurrencyChange('from'));
+        this.toCurrency.addEventListener('change', () => this.handleCurrencyChange('to'));
 
-    populateCurrencyDropdowns() {
-        Object.entries(currencies).forEach(([code, details]) => {
-            const option1 = new Option(`${details.symbol} ${code} - ${details.name}`, code);
-            const option2 = new Option(`${details.symbol} ${code} - ${details.name}`, code);
-            this.fromCurrency.add(option1);
-            this.toCurrency.add(option2);
-        });
-
-        this.fromCurrency.value = 'USD';
-        this.toCurrency.value = 'EUR';
+        // Initialize currency dropdowns
+        this.populateCurrencyDropdowns();
     }
 
     async handleSubmit(e) {
         e.preventDefault();
-        const amount = parseFloat(this.amount.value);
-        const fromCurrency = this.fromCurrency.value;
-        const toCurrency = this.toCurrency.value;
-
-        if (amount <= 0) {
-            this.showError('Please enter a valid amount');
-            return;
-        }
+        this.hideError();
+        this.showLoading();
 
         try {
+            const amount = parseFloat(this.amount.value);
+            const fromCurrency = this.fromCurrency.value;
+            const toCurrency = this.toCurrency.value;
+
+            // Validate amount
+            CurrencyManager.validateAmount(amount, fromCurrency);
+
             const rate = await this.api.getRate(fromCurrency, toCurrency);
-            const convertedAmount = (amount * rate).toFixed(2);
+            this.checkRateAlert(fromCurrency, toCurrency, rate);
+            
+            const convertedAmount = amount * rate;
             this.displayResult(amount, convertedAmount, fromCurrency, toCurrency, rate);
             this.addToHistory(amount, convertedAmount, fromCurrency, toCurrency);
+            
+            this.previousRates.set(`${fromCurrency}-${toCurrency}`, rate);
         } catch (error) {
             this.showError(error.message);
+        } finally {
+            this.hideLoading();
         }
+    }
+
+    checkRateAlert(fromCurrency, toCurrency, newRate) {
+        const key = `${fromCurrency}-${toCurrency}`;
+        const previousRate = this.previousRates.get(key);
+        
+        if (previousRate) {
+            const changePercent = Math.abs((newRate - previousRate) / previousRate * 100);
+            if (changePercent >= CONFIG.RATE_ALERT_THRESHOLD) {
+                this.showRateAlert(fromCurrency, toCurrency, changePercent, newRate > previousRate);
+            }
+        }
+    }
+
+    showRateAlert(fromCurrency, toCurrency, changePercent, isIncrease) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${isIncrease ? 'warning' : 'info'} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            <strong>Rate Alert!</strong> ${fromCurrency}/${toCurrency} rate has 
+            ${isIncrease ? 'increased' : 'decreased'} by ${changePercent.toFixed(2)}%
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        this.form.insertAdjacentElement('beforebegin', alertDiv);
     }
 
     displayResult(amount, convertedAmount, fromCurrency, toCurrency, rate) {
-        const fromSymbol = currencies[fromCurrency].symbol;
-        const toSymbol = currencies[toCurrency].symbol;
+        const fromInfo = CurrencyManager.getCurrencyInfo(fromCurrency);
+        const toInfo = CurrencyManager.getCurrencyInfo(toCurrency);
 
-        this.result.style.display = 'block';
-        this.error.style.display = 'none';
+        this.conversionText.textContent = `${fromInfo.symbol}${amount} ${fromCurrency} = ${toInfo.symbol}${convertedAmount.toFixed(2)} ${toCurrency}`;
+        this.rateText.textContent = `Exchange rate: ${fromInfo.symbol}1 ${fromCurrency} = ${toInfo.symbol}${rate.toFixed(4)} ${toCurrency}`;
+        this.timestamp.textContent = `Last updated: ${new Date().toLocaleString()}`;
         
-        document.getElementById('conversionText').textContent = 
-            `${fromSymbol}${amount} ${fromCurrency} = ${toSymbol}${convertedAmount} ${toCurrency}`;
-        document.getElementById('rateText').textContent = 
-            `Exchange rate: ${fromSymbol}1 ${fromCurrency} = ${toSymbol}${rate} ${toCurrency}`;
-        document.getElementById('timestamp').textContent = 
-            `Last updated: ${new Date().toLocaleString()}`;
+        this.result.style.display = 'block';
     }
 
-    showError(message) {
-        this.result.style.display = 'none';
-        this.error.style.display = 'block';
-        this.error.textContent = message;
-    }
-
-    swapCurrencies() {
-        const temp = this.fromCurrency.value;
-        this.fromCurrency.value = this.toCurrency.value;
-        this.toCurrency.value = temp;
-        if (this.amount.value) {
-            this.form.dispatchEvent(new Event('submit'));
-        }
-    }
-
-    clearAmount() {
-        this.amount.value = '';
-        this.result.style.display = 'none';
-        this.error.style.display = 'none';
-    }
-
-    validateAmount() {
-        if (this.amount.value < 0) {
-            this.amount.value = Math.abs(this.amount.value);
+    async copyToClipboard() {
+        try {
+            await navigator.clipboard.writeText(this.conversionText.textContent);
+            this.showTemporaryMessage('Copied to clipboard!', 'success');
+        } catch (err) {
+            this.showTemporaryMessage('Failed to copy to clipboard', 'danger');
         }
     }
 
@@ -104,48 +136,129 @@ class CurrencyConverter {
             convertedAmount,
             fromCurrency,
             toCurrency,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            rate: convertedAmount / amount
         };
 
-        let history = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+        let history = this.getHistory();
         history.unshift(historyItem);
-        history = history.slice(0, 5); // Keep only last 5 conversions
+        history = history.slice(0, CONFIG.MAX_HISTORY_ITEMS);
         localStorage.setItem('conversionHistory', JSON.stringify(history));
         this.displayHistory();
     }
 
-    loadHistory() {
-        const history = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
-        this.displayHistory(history);
-    }
-
     displayHistory() {
-        const history = JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+        const history = this.getHistory();
         this.historyList.innerHTML = '';
 
         history.forEach(item => {
             const li = document.createElement('li');
             li.className = 'list-group-item history-item';
-            const fromSymbol = currencies[item.fromCurrency].symbol;
-            const toSymbol = currencies[item.toCurrency].symbol;
             
+            const fromInfo = CurrencyManager.getCurrencyInfo(item.fromCurrency);
+            const toInfo = CurrencyManager.getCurrencyInfo(item.toCurrency);
+
             li.innerHTML = `
-                ${fromSymbol}${item.amount} ${item.fromCurrency} = 
-                ${toSymbol}${item.convertedAmount} ${item.toCurrency}
-                <small class="text-muted d-block">
-                    ${new Date(item.timestamp).toLocaleString()}
-                </small>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        ${fromInfo.symbol}${item.amount} ${item.fromCurrency} = 
+                        ${toInfo.symbol}${item.convertedAmount.toFixed(2)} ${item.toCurrency}
+                        <small class="text-muted d-block">
+                            ${new Date(item.timestamp).toLocaleString()}
+                        </small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary repeat-conversion">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
             `;
 
-            li.addEventListener('click', () => {
-                this.amount.value = item.amount;
-                this.fromCurrency.value = item.fromCurrency;
-                this.toCurrency.value = item.toCurrency;
-                this.form.dispatchEvent(new Event('submit'));
+            li.querySelector('.repeat-conversion').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.repeatConversion(item);
             });
 
             this.historyList.appendChild(li);
         });
+    }
+
+    toggleTheme() {
+        const currentTheme = document.body.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        document.body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        const icon = this.themeToggle.querySelector('i');
+        icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        
+        ChartManager.setDarkMode(newTheme === 'dark');
+    }
+
+    loadThemePreference() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', savedTheme);
+        const icon = this.themeToggle.querySelector('i');
+        icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    showError(message) {
+        this.error.style.display = 'block';
+        this.error.textContent = message;
+        this.result.style.display = 'none';
+    }
+
+    hideError() {
+        this.error.style.display = 'none';
+    }
+
+    showLoading() {
+        const spinner = this.form.querySelector('.spinner-border');
+        spinner.classList.remove('d-none');
+    }
+
+    hideLoading() {
+        const spinner = this.form.querySelector('.spinner-border');
+        spinner.classList.add('d-none');
+    }
+
+    handleKeyboardShortcuts(e) {
+        // Ctrl/Cmd + Enter to convert
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            this.form.dispatchEvent(new Event('submit'));
+        }
+        // Ctrl/Cmd + S to swap currencies
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            this.swapCurrencies();
+        }
+    }
+
+    // Helper methods
+    getHistory() {
+        return JSON.parse(localStorage.getItem('conversionHistory') || '[]');
+    }
+
+    clearHistory() {
+        localStorage.removeItem('conversionHistory');
+        this.displayHistory();
+    }
+
+    repeatConversion(historyItem) {
+        this.amount.value = historyItem.amount;
+        this.fromCurrency.value = historyItem.fromCurrency;
+        this.toCurrency.value = historyItem.toCurrency;
+        this.form.dispatchEvent(new Event('submit'));
+    }
+
+    showTemporaryMessage(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alert.style.zIndex = '1050';
+        alert.textContent = message;
+        
+        document.body.appendChild(alert);
+        setTimeout(() => alert.remove(), 2000);
     }
 }
 
